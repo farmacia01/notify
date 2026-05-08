@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Sales Alert PWA
 
-## Getting Started
+PWA em Next.js App Router para simular notificacoes de vendas por Web Push.
+O app usa Supabase Auth/Database/RLS, service worker, VAPID e rotas server-side para disparos via n8n.
 
-First, run the development server:
+## Setup rapido
+
+1. Instale dependencias:
+
+```bash
+npm install
+```
+
+2. Crie `.env.local` a partir de `.env.example`.
+3. Rode `supabase/schema.sql` no SQL Editor do Supabase.
+4. Gere VAPID keys:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+5. Inicie localmente:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Documentacao
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Supabase: `docs/supabase-setup.md`
+- n8n: `docs/n8n-setup.md`
+- Vercel: `docs/vercel-deploy.md`
 
-## Learn More
+## Rotas
 
-To learn more about Next.js, take a look at the following resources:
+- `/login`
+- `/register`
+- `/dashboard`
+- `POST /api/push/subscribe`
+- `POST /api/push/test`
+- `POST /api/push/send`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Notificacoes `demo` e `teste` sao simulacoes internas. O tipo `real` esta preparado para uma integracao futura com webhook real da Cakto.
