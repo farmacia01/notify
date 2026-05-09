@@ -65,14 +65,14 @@ export default async function DashboardPage() {
         <header className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium uppercase tracking-[0.18em] text-emerald-200">
-              Cakto
+              Evopay
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-normal text-white sm:text-4xl">
               Painel de notificações de vendas
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
               Ambiente de teste para simular alertas de venda e preparar uma
-              integração futura via webhook real da Cakto.
+              integração futura via webhook real da Evopay.
             </p>
           </div>
         </header>
@@ -125,17 +125,28 @@ export default async function DashboardPage() {
           <aside className="rounded-[8px] border border-white/10 bg-zinc-950 p-5">
             <h2 className="text-lg font-semibold text-white">n8n endpoint</h2>
             <p className="mt-2 text-sm leading-6 text-zinc-400">
-              O n8n deve chamar a rota abaixo com o header Authorization Bearer.
-              Sem user_id, o envio é feito para todos os usuários com
-              dispositivos cadastrados.
+              Chame a rota com Authorization Bearer e o payload abaixo para disparar múltiplas notificações com delays humanizados.
             </p>
             <code className="mt-4 block rounded-[8px] border border-white/10 bg-black p-3 text-xs leading-6 text-emerald-100">
               POST /api/push/send
             </code>
-            <div className="mt-5 space-y-2 text-sm text-zinc-400">
-              <p>Usuário: Acesso Público</p>
-              <p>Dispositivos salvos: {subscriptions.length}</p>
-              <p>Tipo padrão: demo</p>
+            <pre className="mt-3 overflow-x-auto rounded-[8px] border border-white/5 bg-black/60 p-3 text-xs leading-5 text-zinc-300">{`{
+  "quantity": 20,
+  "min_value": 17,
+  "max_value": 97,
+  "delay_min": 8,
+  "delay_max": 35,
+  "messages": [
+    "Venda aprovada!",
+    "Pix gerado!",
+    "Venda aprovada no Pix!",
+    "Nova comissão recebida!"
+  ],
+  "url": "/dashboard"
+}`}</pre>
+            <div className="mt-4 space-y-1 text-xs text-zinc-500">
+              <p>Dispositivos cadastrados: <span className="text-white font-medium">{subscriptions.length}</span></p>
+              <p>URL base: <span className="text-emerald-400">https://evopaynotify.vercel.app</span></p>
             </div>
           </aside>
         </div>

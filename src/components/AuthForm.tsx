@@ -16,10 +16,10 @@ function getSafeNextPath(value: string | null) {
   }
 
   try {
-    const url = new URL(value, "https://cakto.local");
+    const url = new URL(value, "https://evopay.local");
     const path = `${url.pathname}${url.search}${url.hash}`;
 
-    if (url.origin !== "https://cakto.local") {
+    if (url.origin !== "https://evopay.local") {
       return "/dashboard";
     }
 
@@ -123,7 +123,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     <div className="w-full max-w-md rounded-[8px] border border-white/10 bg-zinc-950/80 p-6 shadow-2xl shadow-black/30 backdrop-blur">
       <div className="mb-8">
         <div className="mb-4 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-emerald-200">
-          Cakto
+          Evopay
         </div>
         <h1 className="text-3xl font-semibold text-white">{copy.title}</h1>
         <p className="mt-2 text-sm leading-6 text-zinc-400">{copy.subtitle}</p>

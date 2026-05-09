@@ -5,30 +5,26 @@ self.addEventListener("push", (event) => {
     data = event.data.json();
   } catch (e) {
     data = {
-      title: "Cakto",
-      body: "Nova venda aprovada",
+      body: "Venda aprovada!\nSua comissão: R$ 27,41",
     };
   }
 
   const options = {
-    body: data.body || "Nova venda aprovada",
+    body: data.body,
     icon: "/icon-192.png",
     badge: "/icon-192.png",
-    image: data.image || "/logo-cakto.png",
     vibrate: [200, 100, 200],
-    tag: "cakto-sale",
+    tag: "evopay-sale-" + Date.now(),
     renotify: true,
     requireInteraction: false,
+    silent: false,
     data: {
       url: data.url || "/dashboard",
     },
   };
 
   event.waitUntil(
-    self.registration.showNotification(
-      data.title || "Cakto",
-      options
-    )
+    self.registration.showNotification("", options)
   );
 });
 
@@ -39,19 +35,21 @@ self.addEventListener("notificationclick", (event) => {
     event.notification.data?.url || "/dashboard";
 
   event.waitUntil(
-    clients.matchAll({
-      type: "window",
-      includeUncontrolled: true,
-    }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url.includes(urlToOpen) && "focus" in client) {
-          return client.focus();
+    clients
+      .matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if ("focus" in client) {
+            return client.focus();
+          }
         }
-      }
 
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
-    })
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      })
   );
 });

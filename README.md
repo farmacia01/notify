@@ -42,4 +42,4 @@ Abra `http://localhost:3000`.
 - `POST /api/push/test`
 - `POST /api/push/send`
 
-Notificacoes `demo` e `teste` sao simulacoes internas. O tipo `real` esta preparado para uma integracao futura com webhook real da Cakto.
+Notificacoes `demo` e `teste` sao simulacoes internas. O tipo `real` esta preparado para uma integracao futura com webhook real da Evopay.

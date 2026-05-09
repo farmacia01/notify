@@ -1,55 +1,98 @@
 "use client";
 
-import { Send, Clock } from "lucide-react";
+import { Send, Clock, Zap, TrendingUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
+
+const DEFAULT_MESSAGES = [
+  "Venda aprovada!",
+  "Pix gerado!",
+  "Venda aprovada no Pix!",
+  "Nova comissão recebida!",
+];
+
+type NotificationResult = {
+  index: number;
+  message: string;
+  value: string;
+  total_sent: number;
+  total_failed: number;
+};
 
 export function TestNotificationButton() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [feedback, setFeedback] = useState("");
+  const [feedback, setFeedback] = useState<{
+    quantity_sent: number;
+    grand_total_sent: number;
+    grand_total_failed: number;
+    notifications: NotificationResult[];
+  } | null>(null);
   const [error, setError] = useState("");
-  
-  const [template, setTemplate] = useState("venda");
-  const [customTitle, setCustomTitle] = useState("Cakto");
-  const [customBody, setCustomBody] = useState("");
-  const [delaySeconds, setDelaySeconds] = useState(0);
+
+  // ── form state ──
+  const [quantity, setQuantity] = useState(3);
+  const [minValue, setMinValue] = useState(17);
+  const [maxValue, setMaxValue] = useState(97);
+  const [delayMin, setDelayMin] = useState(5);
+  const [delayMax, setDelayMax] = useState(20);
+  const [messagesText, setMessagesText] = useState(DEFAULT_MESSAGES.join("\n"));
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [delayBefore, setDelayBefore] = useState(0);
 
   const executeSend = useCallback(async () => {
     setIsLoading(true);
-    setFeedback("");
+    setFeedback(null);
     setError("");
 
-    let finalTitle = "Cakto";
-    let finalBody = "";
-
-    if (template === "venda") {
-      finalBody = "Nova venda aprovada\nMentoria Premium\nR$ 197,00";
-    } else if (template === "pix") {
-      finalBody = "Pix confirmado\nR$ 97,00";
-    } else if (template === "upsell") {
-      finalBody = "Upsell aprovado\n+ R$ 47,00";
-    } else {
-      finalTitle = customTitle || "Cakto";
-      finalBody = customBody || "Nova venda aprovada";
-    }
+    const messages = messagesText
+      .split("\n")
+      .map((m) => m.trim())
+      .filter(Boolean);
 
     try {
-      const response = await fetch("/api/push/test", {
+      const response = await fetch("/api/push/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: finalTitle, body: finalBody }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_N8N_TOKEN ?? ""}`,
+        },
+        body: JSON.stringify({
+          quantity,
+          min_value: minValue,
+          max_value: maxValue,
+          delay_min: delayMin,
+          delay_max: delayMax,
+          messages,
+          url: "/dashboard",
+          type: "demo",
+        }),
       });
-      const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error ?? "Nao foi possivel enviar o teste.");
+      // Fallback: dashboard uses /api/push/test endpoint which doesn't need the Bearer
+      if (response.status === 401) {
+        const res2 = await fetch("/api/push/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            quantity,
+            min_value: minValue,
+            max_value: maxValue,
+            delay_min: delayMin,
+            delay_max: delayMax,
+            messages,
+          }),
+        });
+        const d2 = await res2.json();
+        if (!res2.ok) throw new Error(d2.error ?? "Erro ao enviar.");
+        setFeedback(d2);
+        router.refresh();
+        return;
       }
 
-      setFeedback(
-        `Enviadas: ${data.total_sent} | Falhas: ${data.total_failed}`,
-      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Erro ao enviar.");
+      setFeedback(data);
       router.refresh();
     } catch (caughtError) {
       setError(
@@ -60,86 +103,146 @@ export function TestNotificationButton() {
     } finally {
       setIsLoading(false);
     }
-  }, [template, customTitle, customBody, router]);
+  }, [quantity, minValue, maxValue, delayMin, delayMax, messagesText, router]);
 
   useEffect(() => {
     if (countdown === null) return;
-    
     if (countdown <= 0) {
       setCountdown(null);
       executeSend();
       return;
     }
-
-    const timer = setTimeout(() => {
-      setCountdown(countdown - 1);
-    }, 1000);
-
+    const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
     return () => clearTimeout(timer);
   }, [countdown, executeSend]);
 
   function handleSchedule() {
-    if (delaySeconds > 0) {
-      setCountdown(delaySeconds);
+    if (delayBefore > 0) {
+      setCountdown(delayBefore);
     } else {
       executeSend();
     }
   }
 
+  const isDisabled = isLoading || countdown !== null;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+
+      {/* Quantity */}
       <div className="space-y-1.5">
-        <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">Tipo</label>
-        <select
-          value={template}
-          onChange={(e) => setTemplate(e.target.value)}
-          className="w-full rounded-[8px] border border-white/10 bg-black px-3 py-2.5 text-sm text-white transition focus:border-emerald-500/50 focus:outline-none"
-          disabled={countdown !== null}
-        >
-          <option value="venda">Nova venda aprovada</option>
-          <option value="pix">Pix confirmado</option>
-          <option value="upsell">Upsell aprovado</option>
-          <option value="custom">Personalizada</option>
-        </select>
+        <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-zinc-500">
+          <Zap className="h-3 w-3" />
+          Quantidade de notificações
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={1}
+            max={50}
+            value={quantity}
+            onChange={(e) => setQuantity(Number(e.target.value))}
+            disabled={isDisabled}
+            className="flex-1 accent-emerald-400"
+          />
+          <span className="w-8 text-right text-sm font-semibold text-white">
+            {quantity}
+          </span>
+        </div>
       </div>
 
-      {template === "custom" && (
-        <div className="space-y-3 rounded-[8px] border border-white/5 bg-black/50 p-3">
+      {/* Value Range */}
+      <div className="space-y-1.5">
+        <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-zinc-500">
+          <TrendingUp className="h-3 w-3" />
+          Faixa de valor (R$)
+        </label>
+        <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <label className="text-xs text-zinc-500">Título</label>
+            <span className="text-xs text-zinc-600">Mínimo</span>
             <input
-              type="text"
-              value={customTitle}
-              onChange={(e) => setCustomTitle(e.target.value)}
-              placeholder="Cakto"
-              className="w-full rounded-[6px] border border-white/10 bg-black px-3 py-1.5 text-sm text-white transition focus:border-emerald-500/50 focus:outline-none"
-              disabled={countdown !== null}
+              type="number"
+              min={1}
+              max={maxValue}
+              value={minValue}
+              onChange={(e) => setMinValue(Number(e.target.value))}
+              disabled={isDisabled}
+              className="w-full rounded-[6px] border border-white/10 bg-black px-3 py-1.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-zinc-500">Mensagem</label>
-            <textarea
-              value={customBody}
-              onChange={(e) => setCustomBody(e.target.value)}
-              placeholder="Nova venda aprovada&#10;Produto: ...&#10;R$ ..."
-              rows={3}
-              className="w-full rounded-[6px] border border-white/10 bg-black px-3 py-1.5 text-sm text-white transition focus:border-emerald-500/50 focus:outline-none"
-              disabled={countdown !== null}
+            <span className="text-xs text-zinc-600">Máximo</span>
+            <input
+              type="number"
+              min={minValue}
+              max={9999}
+              value={maxValue}
+              onChange={(e) => setMaxValue(Number(e.target.value))}
+              disabled={isDisabled}
+              className="w-full rounded-[6px] border border-white/10 bg-black px-3 py-1.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
             />
           </div>
         </div>
-      )}
+      </div>
 
+      {/* Delay between notifications */}
       <div className="space-y-1.5">
         <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-zinc-500">
           <Clock className="h-3 w-3" />
-          Atraso
+          Delay entre notificações (segundos)
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <span className="text-xs text-zinc-600">Mínimo</span>
+            <input
+              type="number"
+              min={0}
+              max={delayMax}
+              value={delayMin}
+              onChange={(e) => setDelayMin(Number(e.target.value))}
+              disabled={isDisabled}
+              className="w-full rounded-[6px] border border-white/10 bg-black px-3 py-1.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+            />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs text-zinc-600">Máximo</span>
+            <input
+              type="number"
+              min={delayMin}
+              max={300}
+              value={delayMax}
+              onChange={(e) => setDelayMax(Number(e.target.value))}
+              disabled={isDisabled}
+              className="w-full rounded-[6px] border border-white/10 bg-black px-3 py-1.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+          Mensagens (uma por linha)
+        </label>
+        <textarea
+          value={messagesText}
+          onChange={(e) => setMessagesText(e.target.value)}
+          rows={4}
+          disabled={isDisabled}
+          className="w-full rounded-[8px] border border-white/10 bg-black px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+        />
+      </div>
+
+      {/* Pre-launch delay */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+          Atraso antes do início
         </label>
         <select
-          value={delaySeconds}
-          onChange={(e) => setDelaySeconds(Number(e.target.value))}
-          className="w-full rounded-[8px] border border-white/10 bg-black px-3 py-2.5 text-sm text-white transition focus:border-emerald-500/50 focus:outline-none"
-          disabled={countdown !== null}
+          value={delayBefore}
+          onChange={(e) => setDelayBefore(Number(e.target.value))}
+          disabled={isDisabled}
+          className="w-full rounded-[8px] border border-white/10 bg-black px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
         >
           <option value={0}>Imediato</option>
           <option value={5}>5 segundos</option>
@@ -149,24 +252,40 @@ export function TestNotificationButton() {
         </select>
       </div>
 
+      {/* CTA */}
       <button
         className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] bg-emerald-400 px-4 text-sm font-semibold text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
         type="button"
         onClick={handleSchedule}
-        disabled={isLoading || countdown !== null}
+        disabled={isDisabled}
       >
         <Send className="h-4 w-4" aria-hidden="true" />
         {countdown !== null
-          ? `Enviando em ${countdown}s`
+          ? `Iniciando em ${countdown}s…`
           : isLoading
-            ? "Enviando..."
-            : delaySeconds > 0
-              ? "Agendar envio"
-              : "Enviar agora"}
+            ? `Disparando ${quantity} notificações…`
+            : delayBefore > 0
+              ? `Agendar ${quantity} disparos`
+              : `Disparar ${quantity} notificações`}
       </button>
 
-      {feedback ? <p className="text-sm text-emerald-300">{feedback}</p> : null}
-      {error ? <p className="text-sm text-red-400">{error}</p> : null}
+      {/* Results */}
+      {feedback && (
+        <div className="space-y-2 rounded-[8px] border border-emerald-400/20 bg-emerald-400/5 p-4">
+          <p className="text-sm font-medium text-emerald-300">
+            ✓ {feedback.quantity_sent} notificações enviadas &middot; {feedback.grand_total_sent} dispositivos alcançados
+          </p>
+          <div className="space-y-1">
+            {feedback.notifications?.map((n) => (
+              <p key={n.index} className="text-xs text-zinc-400">
+                <span className="text-zinc-500">#{n.index}</span>{" "}
+                {n.message} · {n.value}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+      {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   );
 }

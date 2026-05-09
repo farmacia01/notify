@@ -5,13 +5,13 @@ import "@fontsource-variable/space-grotesk";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Cakto",
-  description: "Notificações de vendas",
+  title: "Evopay",
+  description: "Notificações financeiras",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Cakto",
+    title: "Evopay",
   },
   icons: {
     icon: "/icon-192.png",

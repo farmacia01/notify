@@ -11,7 +11,7 @@ export default function LoginPage() {
           className="mb-8 inline-flex text-sm font-medium text-zinc-400 transition hover:text-white"
           href="/dashboard"
         >
-          Cakto
+          Evopay
         </Link>
         <Suspense>
           <AuthForm mode="login" />
